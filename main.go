@@ -17,23 +17,32 @@ import (
 func main() {
 	log.Info().Msg("Starting server...")
 
+	loadConfig, err := config.LoadConfig(".")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error loading config")
+	}
+
 	// Database
-	db := config.DatabaseConnection()
+	db := config.DatabaseConnection(&loadConfig)
 	validate := validator.New()
 
 	db.Table("tags").AutoMigrate(&model.Tags{})
+	db.Table("users").AutoMigrate(&model.Users{})
 
 	// Repository
 	tagsRepository := repository.NewTagsRepositoryImpl(db)
+	usersRepository := repository.NewUsersRepositoryImpl(db)
 
 	// Service
 	tagsService := service.NewTagsServiceImpl(tagsRepository, validate)
+	authenticationService := service.NewAuthenticationServiceImpl(usersRepository, validate)
 
 	// Controller
 	tagsController := controller.NewTagsController(tagsService)
+	authenticationController := controller.NewAuthenticationController(authenticationService)
 
 	// Router
-	routes := router.NewRouter(tagsController)
+	routes := router.NewRouter(tagsController, authenticationController)
 
 	routes.GET("/api", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "hello world"})
@@ -44,6 +53,6 @@ func main() {
 		Handler: routes,
 	}
 
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	helper.ErrorPanic(err)
 }

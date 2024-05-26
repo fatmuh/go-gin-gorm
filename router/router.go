@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func NewRouter(tagsController *controller.TagsController) *gin.Engine {
+func NewRouter(tagsController *controller.TagsController, authenticationController *controller.AuthenticationController) *gin.Engine {
 	router := gin.Default()
 
 	router.GET("", func(ctx *gin.Context) {
@@ -20,6 +20,10 @@ func NewRouter(tagsController *controller.TagsController) *gin.Engine {
 	tagRouter.POST("", tagsController.Create)
 	tagRouter.PATCH("/:tagId", tagsController.Update)
 	tagRouter.DELETE("/:tagId", tagsController.Delete)
+
+	authRouter := baseRouter.Group("/auth")
+	authRouter.POST("/register", authenticationController.Register)
+	authRouter.POST("/login", authenticationController.Login)
 
 	return router
 }
